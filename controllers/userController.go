@@ -12,6 +12,8 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+var revokedTokens = make(map[string]bool)
+
 func Signup(c *gin.Context) {
 	var body struct {
 		Email    string
@@ -108,9 +110,9 @@ func Login(c *gin.Context) {
 	emailUserLogin := user.Email
 
 	c.JSON(http.StatusOK, gin.H{
-		"status": http.StatusOK,
+		"status":  http.StatusOK,
 		"message": "Successfully login",
-		"email":    emailUserLogin,
+		"email":   emailUserLogin,
 		"token":   tokenString,
 	})
 }
@@ -121,8 +123,34 @@ func Validate(c *gin.Context) {
 	emailUser := user.(models.User).Email
 
 	c.JSON(http.StatusOK, gin.H{
-		"status": http.StatusOK,
+		"status":  http.StatusOK,
 		"message": "I'm logged in now",
 		"email":   emailUser,
+	})
+}
+
+func Logout(c *gin.Context) {
+	tokenString, err := c.Cookie("Authorization")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": "User must be logged in to log out",
+		})
+		return
+	}
+
+	if revokedTokens[tokenString] {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": "Invalid or revoked token",
+		})
+		return
+	}
+
+	c.SetCookie("Authorization", "", -1, "", "", false, true)
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":  http.StatusOK,
+		"message": "Successfully log out",
 	})
 }

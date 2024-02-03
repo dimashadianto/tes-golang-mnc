@@ -122,12 +122,31 @@ func UpdateCustomer(c *gin.Context) {
 		return
 	}
 
+	user, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": "User must be log in to update customer",
+		})
+		return
+	}
+
+	authenticatedUserID := user.(models.User).ID
+
 	var existingCustomer models.Customer
 	result := initializers.DB.Preload("User").First(&existingCustomer, body.ID)
 	if result.Error != nil {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error":   "Customer not found",
 			"message": "Failed to update customer",
+		})
+		return
+	}
+
+	if existingCustomer.User.ID != authenticatedUserID {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error":   "Forbidden",
+			"message": "You don't have permission to update customer",
 		})
 		return
 	}

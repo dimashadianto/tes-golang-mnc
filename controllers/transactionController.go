@@ -9,8 +9,18 @@ import (
 )
 
 func CreateTransaction(c *gin.Context) {
+	user, exists := c.Get("user")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{
+			"error":   "Unauthorized",
+			"message": "Customer must be log in to create a transaction",
+		})
+		return
+	}
+
+	customerID := user.(models.User).ID
+
 	var body struct {
-		CustomerID             uint32
 		TransactionAmount      uint64
 		TransactionDescription string
 		SellerID               uint32
@@ -25,7 +35,7 @@ func CreateTransaction(c *gin.Context) {
 	}
 
 	history := models.Transaction{
-		CustomerID:             body.CustomerID,
+		CustomerID:             uint32(customerID),
 		TransactionAmount:      body.TransactionAmount,
 		TransactionDescription: body.TransactionDescription,
 		SellerID:               body.SellerID,
